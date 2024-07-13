@@ -1,0 +1,101 @@
+{
+  "name": "echo-env",
+  "displayName": "echo.env",
+  "publisher": "inci-august",
+  "description": "VS Code extension to automatically sync .env files with template files, securing sensitive data while tracking required variables.",
+  "version": "0.0.0",
+  "engines": {
+    "vscode": "^1.91.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/inci-august/echo.env"
+  },
+  "icon": "logo.png",
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/.env*"
+  ],
+  "main": "out/extension.js",
+  "tags": [
+    "env",
+    "sync",
+    "dotenv",
+    "template",
+    "example",
+    ".env",
+    "vscode",
+    "git",
+    "variables"
+  ],
+  "contributes": {
+    "configuration": {
+      "title": "echoEnv",
+      "properties": {
+        "echoEnv.sourceFiles": {
+          "type": "array",
+          "default": [
+            ".env",
+            ".env.local"
+          ],
+          "description": "List of source .env files to watch"
+        },
+        "echoEnv.destinationFiles": {
+          "type": "array",
+          "default": [
+            ".env.template",
+            ".env.example"
+          ],
+          "description": "List of destination template files to update"
+        },
+        "echoEnv.placeholderFormat": {
+          "type": "string",
+          "default": "your_${key}",
+          "description": "Format for placeholder values in template files"
+        },
+        "echoEnv.showNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show notifications when .env files are synchronized"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "echoEnv.syncEnvFiles",
+        "title": "Sync .env files"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./ && esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
+    "watch": "npm-run-all -p watch:*",
+    "watch:tsc": "tsc -watch -p ./",
+    "watch:esbuild": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --watch",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "prepare-patch": "node scripts/update-changelog.js prepare-patch",
+    "prepare-minor": "node scripts/update-changelog.js prepare-minor",
+    "prepare-major": "node scripts/update-changelog.js prepare-major",
+    "publish-patch": "vsce publish patch -m ':bookmark: patch update (%s)' && git push --follow-tags",
+    "publish-minor": "vsce publish minor -m ':bookmark: minor update (%s)' && git push --follow-tags",
+    "publish-major": "vsce publish major -m ':bookmark: major update (%s)' && git push --follow-tags"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.91.0",
+    "@types/mocha": "^10.0.7",
+    "@types/node": "20.x",
+    "@typescript-eslint/eslint-plugin": "^7.14.1",
+    "@typescript-eslint/parser": "^7.11.0",
+    "eslint": "^8.57.0",
+    "esbuild": "^0.21.5",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.4.5",
+    "@vscode/test-cli": "^0.0.9",
+    "@vscode/test-electron": "^2.4.0"
+  }
+}
