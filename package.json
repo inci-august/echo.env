@@ -37,8 +37,12 @@
         "echoEnv.sourceFiles": {
           "type": "array",
           "default": [
-            ".env",
-            ".env.local"
+            ".env.local",
+            ".env.development",
+            ".env.dev",
+            ".env.test",
+            ".env.staging",
+            ".env"
           ],
           "description": "List of source .env files to watch"
         },
@@ -46,13 +50,16 @@
           "type": "array",
           "default": [
             ".env.template",
-            ".env.example"
+            ".env.example",
+            ".env.sample",
+            ".env.defaults",
+            ".env.dist"
           ],
           "description": "List of destination template files to update"
         },
         "echoEnv.placeholderFormat": {
           "type": "string",
-          "default": "your_${key}",
+          "default": "${key}",
           "description": "Format for placeholder values in template files"
         },
         "echoEnv.showNotifications": {
@@ -70,7 +77,7 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vsce:prepublish": "npm run compile",
     "compile": "tsc -p ./ && esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
     "watch": "npm-run-all -p watch:*",
     "watch:tsc": "tsc -watch -p ./",
@@ -81,9 +88,9 @@
     "prepare-patch": "node scripts/update-changelog.js prepare-patch",
     "prepare-minor": "node scripts/update-changelog.js prepare-minor",
     "prepare-major": "node scripts/update-changelog.js prepare-major",
-    "publish-patch": "vsce publish patch -m ':bookmark: patch update (%s)' && git push --follow-tags",
-    "publish-minor": "vsce publish minor -m ':bookmark: minor update (%s)' && git push --follow-tags",
-    "publish-major": "vsce publish major -m ':bookmark: major update (%s)' && git push --follow-tags"
+    "publish-patch": "npm run vsce:prepublish && vsce publish patch -m ':small_red_triangle: bug fix release (%s)' && git push --follow-tags",
+    "publish-minor": "npm run vsce:prepublish && vsce publish minor -m ':small_red_triangle: feature release (%s)' && git push --follow-tags",
+    "publish-major": "npm run vsce:prepublish && vsce publish major -m ':small_red_triangle: major release (%s)' && git push --follow-tags"
   },
   "devDependencies": {
     "@types/vscode": "^1.91.0",

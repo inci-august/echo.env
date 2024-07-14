@@ -42,16 +42,25 @@ function setupFileWatcher(context: vscode.ExtensionContext) {
   const workspaceFolders = vscode.workspace.workspaceFolders;
 
   if (workspaceFolders) {
-    const pattern = new vscode.RelativePattern(
-      workspaceFolders[0],
-      `**/{${config.sourceFiles.join(',')}}`
-    );
+    const pattern = new vscode.RelativePattern(workspaceFolders[0], `**/.env*`);
 
     fileWatcher = vscode.workspace.createFileSystemWatcher(pattern);
 
-    fileWatcher.onDidChange(syncEnvFiles);
-    fileWatcher.onDidCreate(syncEnvFiles);
-    fileWatcher.onDidDelete(syncEnvFiles);
+    fileWatcher.onDidChange((uri) => {
+      if (config.sourceFiles.some((file) => uri.fsPath.endsWith(file))) {
+        syncEnvFiles();
+      }
+    });
+    fileWatcher.onDidCreate((uri) => {
+      if (config.sourceFiles.some((file) => uri.fsPath.endsWith(file))) {
+        syncEnvFiles();
+      }
+    });
+    fileWatcher.onDidDelete((uri) => {
+      if (config.sourceFiles.some((file) => uri.fsPath.endsWith(file))) {
+        syncEnvFiles();
+      }
+    });
 
     context.subscriptions.push(fileWatcher);
   }
@@ -59,34 +68,30 @@ function setupFileWatcher(context: vscode.ExtensionContext) {
 
 async function syncEnvFiles() {
   const config = getConfig();
-  const workspaceFolders = vscode.workspace.workspaceFolders;
-
-  if (!workspaceFolders) {
-    vscode.window.showErrorMessage('No workspace folder found');
-    return;
-  }
-
-  const rootPath = workspaceFolders[0].uri.fsPath;
 
   try {
     updateStatusBar('echo.env: syncing...', true);
-    const sourceEnvs = await readSourceEnvFiles(rootPath, config);
-    await updateDestinationFiles(rootPath, sourceEnvs, config);
+    const sourceEnvs = await readSourceEnvFiles();
+    await updateDestinationFiles(sourceEnvs, config);
     updateStatusBar('echo.env: synced', false);
 
     if (config.showNotifications) {
-      vscode.window.showInformationMessage('.env files synchronized successfully');
+      vscode.window.showInformationMessage(
+        'echo.env: .env files synchronized successfully'
+      );
     }
   } catch (error: unknown) {
     updateStatusBar('echo.env: error', false);
     if (error instanceof Error) {
-      vscode.window.showErrorMessage(`Error syncing .env files: ${error.message}`);
-      console.error('echo.env error:', error);
+      vscode.window.showErrorMessage(
+        `echo.env: error syncing .env files: ${error.message}`
+      );
+      console.error('echo.env:', error);
     } else {
       vscode.window.showErrorMessage(
-        `An unexpected error occurred while syncing .env files`
+        `echo.env: an unexpected error occurred while syncing .env files`
       );
-      console.error('echo.env unexpected error:', error);
+      console.error('echo.env:', error);
     }
   }
 }
@@ -101,22 +106,23 @@ function updateStatusBar(text: string, syncing: boolean = false) {
   statusBarItem.show();
 }
 
-async function readSourceEnvFiles(
-  rootPath: string,
-  config: EnvSyncConfig
-): Promise<Map<string, string>> {
+async function readSourceEnvFiles(): Promise<Map<string, string>> {
   const envMap = new Map<string, string>();
 
-  for (const sourceFile of config.sourceFiles) {
-    const filePath = path.join(rootPath, sourceFile);
-    if (fs.existsSync(filePath)) {
-      const content = await fs.promises.readFile(filePath, 'utf8');
-      const lines = content.split('\n');
-      for (const line of lines) {
-        const [key, value] = line.split('=').map((part) => part.trim());
-        if (key && value) {
-          envMap.set(key, value);
-        }
+  const activeFile = vscode.window.activeTextEditor?.document.uri.fsPath;
+  if (!activeFile) {
+    throw new Error('echo.env: no active file found');
+  }
+
+  const content = await fs.promises.readFile(activeFile, 'utf8');
+  const lines = content.split('\n');
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    if (trimmedLine && !trimmedLine.startsWith('#')) {
+      const [key, ...valueParts] = trimmedLine.split('=');
+      const value = valueParts.join('=').trim();
+      if (key && value) {
+        envMap.set(key.trim(), value);
       }
     }
   }
@@ -125,18 +131,29 @@ async function readSourceEnvFiles(
 }
 
 async function updateDestinationFiles(
-  rootPath: string,
   sourceEnvs: Map<string, string>,
   config: EnvSyncConfig
 ) {
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders) {
+    throw new Error('echo.env: no workspace folder found');
+  }
+
+  const activeFile = vscode.window.activeTextEditor?.document.uri.fsPath;
+  if (!activeFile) {
+    throw new Error('echo.env: no active file found');
+  }
+
+  const sourceDir = path.dirname(activeFile);
+
   const existingDestFile = config.destinationFiles.find((file) =>
-    fs.existsSync(path.join(rootPath, file))
+    fs.existsSync(path.join(sourceDir, file))
   );
   const destFile = existingDestFile || config.destinationFiles[0];
 
-  const filePath = path.join(rootPath, destFile);
-  let content = '';
+  const filePath = path.join(sourceDir, destFile);
 
+  let content = '';
   if (fs.existsSync(filePath)) {
     content = await fs.promises.readFile(filePath, 'utf8');
   }
@@ -160,7 +177,7 @@ async function updateDestinationFiles(
       return line;
     });
 
-  sourceEnvs.forEach((value, key) => {
+  sourceEnvs.forEach((_, key) => {
     if (!updatedLines.some((line) => line.startsWith(`${key}=`))) {
       const placeholder = config.placeholderFormat.replace(
         '${key}',
@@ -170,10 +187,17 @@ async function updateDestinationFiles(
     }
   });
 
-  const updatedContent = updatedLines.join('\n');
+  const comment = `# This file is automatically updated by the echo.env extension\n# https://marketplace.visualstudio.com/items?itemName=inci-august.echo-env\n\n`;
+
+  const updatedContent =
+    comment + updatedLines.filter((line) => line.trim() !== '').join('\n') + '\n';
 
   await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
   await fs.promises.writeFile(filePath, updatedContent);
+
+  if (!existingDestFile && config.showNotifications) {
+    vscode.window.showInformationMessage(`echo.env: created ${destFile}`);
+  }
 }
 
 export function deactivate() {

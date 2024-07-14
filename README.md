@@ -6,8 +6,8 @@
 
 <h1 style="border-bottom: none; text-transform: uppercase; letter-spacing: 4px";>echo.env</h1>
 
-![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/inci-august.echo-env?style=for-the-badge&logo=github&logoColor=e7e9e0&logoSize=auto&label=%20&labelColor=776e9a&color=e7e9e0)
-![Visual Studio Marketplace Downloads](https://img.shields.io/visual-studio-marketplace/d/inci-august.echo-env?style=for-the-badge&logo=github&logoColor=e7e9e0&logoSize=auto&label=%20&labelColor=776e9a&color=e7e9e0)
+[![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/inci-august.echo-env?style=for-the-badge&logo=github&logoColor=e7e9e0&logoSize=auto&label=%20&labelColor=776e9a&color=e7e9e0)](https://marketplace.visualstudio.com/items?itemName=inci-august.echo-env)
+[![Visual Studio Marketplace Downloads](https://img.shields.io/visual-studio-marketplace/d/inci-august.echo-env?style=for-the-badge&logo=github&logoColor=e7e9e0&logoSize=auto&label=%20&labelColor=776e9a&color=e7e9e0)](https://marketplace.visualstudio.com/items?itemName=inci-august.echo-env)
 
 </div>
 
@@ -50,9 +50,9 @@ DEBUG=true
 echo.env will automatically generate or update a `.env.example` file:
 
 ```
-DATABASE_URL=your_database_url
-API_KEY=your_api_key
-DEBUG=your_debug_setting
+DATABASE_URL=database_url
+API_KEY=api_key
+DEBUG=debug
 ```
 
 ## Configuration
@@ -61,9 +61,22 @@ Customize the extension's behavior in your VSCode settings:
 
 ```json
 {
-  "echoEnv.sourceFiles": [".env", ".env.local"],
-  "echoEnv.destinationFiles": [".env.template", ".env.example"],
-  "echoEnv.placeholderFormat": "your_${key}",
+  "echoEnv.sourceFiles": [
+    ".env.local",
+    ".env.development",
+    ".env.dev",
+    ".env.test",
+    ".env.staging",
+    ".env"
+  ],
+  "echoEnv.destinationFiles": [
+    ".env.template",
+    ".env.example",
+    ".env.sample",
+    ".env.defaults",
+    ".env.dist"
+  ],
+  "echoEnv.placeholderFormat": "${key}",
   "echoEnv.showNotifications": true
 }
 ```
