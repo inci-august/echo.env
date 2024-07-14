@@ -3,7 +3,7 @@
   "displayName": "echo.env",
   "publisher": "inci-august",
   "description": "VS Code extension to automatically sync .env files with template files, securing sensitive data while tracking required variables.",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "engines": {
     "vscode": "^1.91.0"
   },
