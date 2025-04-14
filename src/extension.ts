@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
-import { EnvSyncConfig, getConfig } from './config';
+import { type EnvSyncConfig, getConfig } from './config';
 
 let fileWatcher: vscode.FileSystemWatcher | undefined;
 let statusBarItem: vscode.StatusBarItem;
@@ -146,11 +146,12 @@ async function updateDestinationFiles(
 
   const sourceDir = path.dirname(activeFile);
 
-  const existingDestFile = config.destinationFiles.find((file) =>
-    fs.existsSync(path.join(sourceDir, file))
-  );
-  const destFile = existingDestFile || config.destinationFiles[0];
-
+	for (const file of config.destinationFiles) {
+    const originalFilePath = path.join(sourceDir, file);
+		const existingDestFile = fs.existsSync(originalFilePath);
+		const destFile = existingDestFile
+			? originalFilePath
+			: config.destinationFiles[0];
   const filePath = path.join(sourceDir, destFile);
 
   let content = '';
@@ -197,6 +198,7 @@ async function updateDestinationFiles(
 
   if (!existingDestFile && config.showNotifications) {
     vscode.window.showInformationMessage(`echo.env: created ${destFile}`);
+		}
   }
 }
 
